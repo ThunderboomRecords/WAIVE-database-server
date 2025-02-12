@@ -119,7 +119,33 @@
         </tbody>
       </table>
     </div>
+
+    <!-- Delete archive button -->
+    <div class="card my-4 p-3 justify-content-center">
+      <button type="button" class="btn btn-danger" data-bs-target="#deleteModal" data-bs-toggle="modal">Delete Archive</button>
+    </div>
+
+    <div class="modal fade" id="deleteModal" aria-hidden="true" aria-labelledby="deleteModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-body mb-3">
+            <p>Confirm deleting "<em><%= archive %></em>"?</p>
+
+            <p>Since this will delete files and folders on the server, <b><em>this action cannot be un-done</em></b>!</p>
+          </div>
+          <div class="modal-footer">
+            <form action="/delete" method="post">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="submit" class="btn btn-danger">DELETE</button>
+              <input type="hidden" name="archive" value="<%= archive %>">
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
+
 
   <!-- Modal for individual editing -->
   <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">

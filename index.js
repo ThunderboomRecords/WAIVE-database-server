@@ -24,6 +24,8 @@ let user_version;
 let undoSavePoints = [];
 
 import { config } from 'dotenv';
+import { duplexPair } from 'stream';
+import { arch } from 'os';
 config({ path: './.env' });
 
 const CONFIG_DIR = process.env.CONFIG_DIR || 'uploads';
@@ -264,6 +266,38 @@ app.post('/update/*', isAuthenticated, async (req, res) => {
     res.redirect(`/dashboard/${archive}`);
 });
 
+app.post('/delete', isAuthenticated, async (req, res) => {
+    const archive = req.body.archive;
+    console.log("Delete: " + archive);
+
+    const db = await dbPromise;
+
+    // Delete all backups
+    if (fs.existsSync(path.join(__dirname, 'backups'))) {
+        fs.rmSync(path.join(__dirname, 'backups'), {
+            recursive: true,
+            force: true
+        });
+    }
+    undoSavePoints = [];
+
+    // Delete folder
+    if (fs.existsSync(path.join(__dirname, CONFIG_DIR, archive))) {
+        fs.rmSync(path.join(__dirname, CONFIG_DIR, archive), {
+            recursive: true,
+            force: true
+        });
+    }
+
+    // Drop rows
+    await db.run("DELETE FROM Sources WHERE archive = ?", [archive]);
+    await db.run("DELETE FROM Archives WHERE name = ?", [archive]);
+
+    await updateVersion(db);
+
+    res.redirect('/dashboard');
+});
+
 // Start Server
 const setup = async () => {
     const db = await dbPromise;
@@ -279,18 +313,19 @@ const setup = async () => {
     // get list of backups:
     console.log("Getting backups:");
     const backupDir = path.join(__dirname, 'backups/');
-    console.log(backupDir);
-    const backups = fs.readdirSync(backupDir);
-    undoSavePoints = backups.map(fn => {
-        let stat = fs.statSync(path.join(__dirname, 'backups', fn));
+    if (fs.existsSync(backupDir)) {
+        const backups = fs.readdirSync(backupDir);
+        undoSavePoints = backups.map(fn => {
+            let stat = fs.statSync(path.join(__dirname, 'backups', fn));
 
-        return {
-            name: fn,
-            time: stat.mtime.getTime()
-        }
-    })
-        .sort((a, b) => { return a.time - b.time })
-        .map(v => v.name);
+            return {
+                name: fn,
+                time: stat.mtime.getTime()
+            }
+        })
+            .sort((a, b) => { return a.time - b.time })
+            .map(v => v.name);
+    }
     console.log(undoSavePoints);
 
     app.listen(PORT, () => {
