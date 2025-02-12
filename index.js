@@ -141,6 +141,8 @@ app.get('/undo', isAuthenticated, async (req, res) => {
     let result = await db.all("PRAGMA user_version", []);
     user_version = result[0].user_version;
 
+    await createCSV();
+
     res.sendStatus(200);
 });
 
@@ -162,7 +164,7 @@ app.post('/upload', isAuthenticated, upload.array('file'), async (req, res) => {
 
     let count = 0;
 
-    createSavePoint(db);
+    await createSavePoint(db);
     await db.run("BEGIN TRANSACTION");
     for (const file of files) {
         // generate id
@@ -190,7 +192,7 @@ app.post('/add-archive', isAuthenticated, async (req, res) => {
     }
 
     const db = await dbPromise;
-    createSavePoint(db);
+    await createSavePoint(db);
     await db.run("INSERT OR IGNORE INTO Archives(name) VALUES (?)", [archiveName], (err) => {
         if (err)
             console.log(err);
@@ -258,7 +260,7 @@ app.post('/update/*', isAuthenticated, async (req, res) => {
 
     if (update) {
         const db = await dbPromise;
-        createSavePoint(db)
+        await createSavePoint(db)
         await db.run(queryString, params, (err) => console.log(err.message));
         await updateVersion(db);
     }
