@@ -1,7 +1,7 @@
 import express from 'express';
 import session from 'express-session';
 import multer from 'multer';
-import path, { resolve } from 'path';
+import path from 'path';
 import fs from 'fs';
 import { stringify } from 'csv-stringify';
 import { fileURLToPath } from 'url';
@@ -12,30 +12,51 @@ const __dirname = path.dirname(__filename);
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 
-let dbPromise = open({
-    filename: 'data.db',
-    driver: sqlite3.Database
-});
-
-const app = express();
-const PORT = 3000;
-
 let user_version;
 let undoSavePoints = [];
 
 import { config } from 'dotenv';
-import { duplexPair } from 'stream';
-import { arch } from 'os';
-config({ path: './.env' });
 
-const CONFIG_DIR = process.env.CONFIG_DIR || 'uploads';
-console.log("CONFIG_DIR: " + CONFIG_DIR);
+console.log("args:")
+console.log(process.argv);
+
+const CONFIG_FILE = process.argv[2] || '.env';
+console.log("Loading config file: " + CONFIG_FILE);
+
+config({ path: CONFIG_FILE });
+
+const app = express();
+
+let UPLOADS_DIR = process.env.UPLOADS_DIR || 'uploads';
+if (UPLOADS_DIR[0] !== '/') {
+    UPLOADS_DIR = path.join(__dirname, UPLOADS_DIR);
+}
+console.log("UPLOADS_DIR: " + UPLOADS_DIR);
+
+let BACKUPS_DIR = process.env.BACKUPS_DIR || 'backups';
+if (BACKUPS_DIR[0] !== '/') {
+    BACKUPS_DIR = path.join(__dirname, BACKUPS_DIR);
+}
+console.log("BACKUPS_DIR: " + BACKUPS_DIR);
+
+let DATABASE_FILE = process.env.DATABASE_FILE || 'data.db';
+if (DATABASE_FILE[0] !== '/') {
+    DATABASE_FILE = path.join(__dirname, DATABASE_FILE);
+}
+console.log("DATABASE_FILE: " + DATABASE_FILE);
+
+let dbPromise = open({
+    filename: DATABASE_FILE,
+    driver: sqlite3.Database
+});
+
+const PORT = process.env.PORT || 3000;
 
 // Middleware setup
 app.set('view engine', 'ejs');
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
-app.use('/file', express.static(CONFIG_DIR));
+app.use('/file', express.static(UPLOADS_DIR));
 app.use('/js', express.static('js'));
 
 // Session configuration
@@ -48,7 +69,7 @@ app.use(session({
 // Multer setup for file uploads
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        const currentPath = path.join(__dirname, CONFIG_DIR, req.query.archive);
+        const currentPath = path.join(UPLOADS_DIR, req.query.archive);
         if (!fs.existsSync(currentPath)) fs.mkdirSync(currentPath, { recursive: true });
         cb(null, currentPath);
     },
@@ -111,7 +132,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
 
 app.get('/dashboard/*', isAuthenticated, async (req, res) => {
     const archive = req.params[0];
-    const currentPath = path.join(__dirname, CONFIG_DIR, archive);
+    const currentPath = path.join(UPLOADS_DIR, archive);
 
     if (!fs.existsSync(currentPath)) {
         return res.redirect('/dashboard');
@@ -130,10 +151,11 @@ app.get('/undo', isAuthenticated, async (req, res) => {
     let lastSp = undoSavePoints.pop();
     console.log(lastSp);
 
-    fs.renameSync(path.join(__dirname, 'backups', lastSp), path.join(__dirname, 'data.db'));
+    fs.renameSync(path.join(BACKUPS_DIR, lastSp), DATABASE_FILE);
 
+    // Load the updated database file
     dbPromise = open({
-        filename: 'data.db',
+        filename: DATABASE_FILE,
         driver: sqlite3.Database
     });
     const db = await dbPromise;
@@ -185,10 +207,10 @@ app.post('/upload', isAuthenticated, upload.array('file'), async (req, res) => {
 
 app.post('/add-archive', isAuthenticated, async (req, res) => {
     const archiveName = removeWhitespaceExceptSpace(req.body.archiveName);
-    const folderPath = path.join(__dirname, CONFIG_DIR, archiveName);
+    const folderPath = path.join(UPLOADS_DIR, archiveName);
 
     if (!fs.existsSync(folderPath)) {
-        fs.mkdirSync(folderPath);
+        fs.mkdirSync(folderPath, { recursive: true });
     }
 
     const db = await dbPromise;
@@ -204,7 +226,7 @@ app.post('/add-archive', isAuthenticated, async (req, res) => {
 
 app.post('/update/*', isAuthenticated, async (req, res) => {
     const archive = req.params[0];
-    const folderPath = path.join(__dirname, CONFIG_DIR, archive);
+    const folderPath = path.join(UPLOADS_DIR, archive);
 
     console.log("/update for archive " + archive);
 
@@ -275,8 +297,8 @@ app.post('/delete', isAuthenticated, async (req, res) => {
     const db = await dbPromise;
 
     // Delete all backups
-    if (fs.existsSync(path.join(__dirname, 'backups'))) {
-        fs.rmSync(path.join(__dirname, 'backups'), {
+    if (fs.existsSync(BACKUPS_DIR)) {
+        fs.rmSync(BACKUPS_DIR, {
             recursive: true,
             force: true
         });
@@ -284,8 +306,8 @@ app.post('/delete', isAuthenticated, async (req, res) => {
     undoSavePoints = [];
 
     // Delete folder
-    if (fs.existsSync(path.join(__dirname, CONFIG_DIR, archive))) {
-        fs.rmSync(path.join(__dirname, CONFIG_DIR, archive), {
+    if (fs.existsSync(path.join(UPLOADS_DIR, archive))) {
+        fs.rmSync(path.join(UPLOADS_DIR, archive), {
             recursive: true,
             force: true
         });
@@ -314,11 +336,10 @@ const setup = async () => {
 
     // get list of backups:
     console.log("Getting backups:");
-    const backupDir = path.join(__dirname, 'backups/');
-    if (fs.existsSync(backupDir)) {
-        const backups = fs.readdirSync(backupDir);
+    if (fs.existsSync(BACKUPS_DIR)) {
+        const backups = fs.readdirSync(BACKUPS_DIR);
         undoSavePoints = backups.map(fn => {
-            let stat = fs.statSync(path.join(__dirname, 'backups', fn));
+            let stat = fs.statSync(path.join(BACKUPS_DIR, fn));
 
             return {
                 name: fn,
@@ -327,8 +348,14 @@ const setup = async () => {
         })
             .sort((a, b) => { return a.time - b.time })
             .map(v => v.name);
+    } else {
+        fs.mkdirSync(BACKUPS_DIR, { recursive: true });
     }
     console.log(undoSavePoints);
+
+    if (!fs.existsSync(UPLOADS_DIR)) {
+        fs.mkdirSync(UPLOADS_DIR, { recursive: true })
+    }
 
     app.listen(PORT, () => {
         console.log(`Server running on http://localhost:${PORT}`);
@@ -382,11 +409,7 @@ async function createCSV() {
 async function createSavePoint(db) {
     let sp = `sp${undoSavePoints.length}.db`;
 
-    if (!fs.existsSync(path.join(__dirname, 'backups'))) {
-        fs.mkdirSync(path.join(__dirname, 'backups'));
-    }
-
-    fs.copyFileSync(path.join(__dirname, 'data.db'), path.join(__dirname, 'backups', sp));
+    fs.copyFileSync(DATABASE_FILE, path.join(BACKUPS_DIR, sp));
 
     undoSavePoints.push(sp);
     console.log(undoSavePoints);
@@ -394,9 +417,8 @@ async function createSavePoint(db) {
     while (undoSavePoints.length > 10) {
         let oldSp = undoSavePoints.shift();
 
-        if (fs.existsSync(path.join(__dirname, 'backups', oldSp))) {
-            fs.rmSync(path.join(__dirname, 'backups', oldSp));
-            console.log("removed old backup " + oldSp);
+        if (fs.existsSync(path.join(BACKUPS_DIR, oldSp))) {
+            fs.rmSync(path.join(BACKUPS_DIR, oldSp));
         }
     }
 }

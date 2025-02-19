@@ -8,6 +8,8 @@ uploads/*
 *.db-journal
 backups/*
 
+*.env
+
 # generated CSV files
 *.tsv
 !tags.tsv
