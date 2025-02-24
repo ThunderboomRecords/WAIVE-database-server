@@ -17,6 +17,7 @@ $ npm run start
 Create a `.env` file at the root of this repo with the following entries:
 ```properties
 PORT=3000
+ROOT='/'
 USERNAME=admin
 PASSWORD=password
 UPLOADS_DIR='uploads/'
@@ -26,6 +27,9 @@ DATABASE_FILE='data.db'
 The example above indicates the default values.
 
 Make sure `PORT` is a valid and usable port to serve requests.
+`ROOT` is the root path of the URL. 
+For example, if this server should have a domain name `www.example.com/some/path` then `ROOT='/some/path'`.
+`ROOT` must begin with `/` and does not need to end with it.
 
 There is only one user account whos credentials can only be set by `USERNAME` and `PASSWORD`.
 Set a stronger password than the default!

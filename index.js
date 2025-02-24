@@ -51,6 +51,7 @@ let dbPromise = open({
 });
 
 const PORT = process.env.PORT || 3000;
+const ROOT = process.env.ROOT || '/';
 
 // Middleware setup
 app.set('view engine', 'ejs');
@@ -89,16 +90,16 @@ const USER = {
 // Authentication Middleware
 function isAuthenticated(req, res, next) {
     if (req.session.user) return next();
-    res.redirect('/login');
+    res.redirect(path.join(ROOT, '/login'));
 }
 
 // GET Routes
 app.get('/', (req, res) => {
-    res.redirect('/dashboard');
+    res.redirect(path.join(ROOT, '/dashboard'));
 });
 
 app.get('/login', (req, res) => {
-    res.render('login');
+    res.render('login', { root: ROOT });
 });
 
 app.get('/latest', (req, res) => {
@@ -118,7 +119,7 @@ app.get('/tags', (req, res) => {
 
 app.get('/logout', (req, res) => {
     req.session.destroy();
-    res.redirect('/login');
+    res.redirect(path.join(ROOT, '/login'));
 });
 
 app.get('/dashboard', isAuthenticated, async (req, res) => {
@@ -127,7 +128,7 @@ app.get('/dashboard', isAuthenticated, async (req, res) => {
         return rows;
     });
 
-    res.render('dashboard', { archives, user_version, undoSavePoints });
+    res.render('dashboard', { archives, user_version, undoSavePoints, root: ROOT });
 });
 
 app.get('/dashboard/*', isAuthenticated, async (req, res) => {
@@ -135,18 +136,18 @@ app.get('/dashboard/*', isAuthenticated, async (req, res) => {
     const currentPath = path.join(UPLOADS_DIR, archive);
 
     if (!fs.existsSync(currentPath)) {
-        return res.redirect('/dashboard');
+        return res.redirect(path.join(ROOT, '/dashboard'));
     }
 
     const db = await dbPromise;
     const sources = await db.all('SELECT * FROM Sources WHERE archive = ?', [archive]);
 
-    res.render('archive', { files: sources, archive, user_version, undoSavePoints });
+    res.render('archive', { files: sources, archive, user_version, undoSavePoints, root: ROOT });
 });
 
 app.get('/undo', isAuthenticated, async (req, res) => {
     if (undoSavePoints.length == 0)
-        res.redirect('/dashboard');
+        res.redirect(path.join(ROOT, '/dashboard'));
 
     let lastSp = undoSavePoints.pop();
     console.log(lastSp);
@@ -165,7 +166,9 @@ app.get('/undo', isAuthenticated, async (req, res) => {
 
     await createCSV();
 
-    res.sendStatus(200);
+    //res.sendStatus(200);
+    console.log(req.path);
+    res.redirect('back');
 });
 
 // POST Routes
@@ -173,9 +176,9 @@ app.post('/login', (req, res) => {
     const { username, password } = req.body;
     if (username === USER.username && password === USER.password) {
         req.session.user = USER;
-        res.redirect('/dashboard');
+        res.redirect(path.join(ROOT, '/dashboard'));
     } else {
-        res.render('login', { error: 'Invalid credentials' });
+        res.render('login', { error: 'Invalid credentials', root: ROOT });
     }
 });
 
@@ -202,7 +205,7 @@ app.post('/upload', isAuthenticated, upload.array('file'), async (req, res) => {
     await db.run("COMMIT");
 
     await updateVersion(db);
-    res.redirect(`/dashboard/${archive}`);
+    res.redirect(path.join(ROOT, '/dashboard', archive));
 });
 
 app.post('/add-archive', isAuthenticated, async (req, res) => {
@@ -221,7 +224,7 @@ app.post('/add-archive', isAuthenticated, async (req, res) => {
     });
     await updateVersion(db);
 
-    res.redirect(`/dashboard/${archiveName}`);
+    res.redirect(path.join(ROOT, '/dashboard', archiveName));
 });
 
 app.post('/update/*', isAuthenticated, async (req, res) => {
@@ -231,7 +234,7 @@ app.post('/update/*', isAuthenticated, async (req, res) => {
     console.log("/update for archive " + archive);
 
     if (!archive || !fs.existsSync(folderPath)) {
-        res.redirect('/dashboard');
+        res.redirect(path.join(ROOT, '/dashboard'));
         return;
     }
 
@@ -287,7 +290,7 @@ app.post('/update/*', isAuthenticated, async (req, res) => {
         await updateVersion(db);
     }
 
-    res.redirect(`/dashboard/${archive}`);
+    res.redirect(path.join(ROOT, '/dashboard', archive));
 });
 
 app.post('/delete', isAuthenticated, async (req, res) => {
@@ -319,7 +322,7 @@ app.post('/delete', isAuthenticated, async (req, res) => {
 
     await updateVersion(db);
 
-    res.redirect('/dashboard');
+    res.redirect(path.join(ROOT, '/dashboard'));
 });
 
 // Start Server

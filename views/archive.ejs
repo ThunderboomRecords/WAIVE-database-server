@@ -14,26 +14,26 @@
 
   <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
     <div class="container-fluid">
-      <a class="navbar-brand" href="/dashboard">WAIVE Sampler Database Manager</a>
+      <a class="navbar-brand" href="<%= root %>/dashboard">WAIVE Sampler Database Manager</a>
       <div class="d-flex">
         <% if (undoSavePoints.length > 0) { %>
-        <button class="btn btn-outline-light mx-2" id="undo-button">Undo</button>
+        <a href="<%= root %>/undo" class="btn btn-outline-light mx-2" id="undo-button">Undo</a>
         <% } %>
-        <a href="/logout" class="btn btn-outline-light">Logout</a>
+        <a href="<%= root %>/logout" class="btn btn-outline-light">Logout</a>
       </div>
     </div>
   </nav>
 
   <div class="container mt-4">
     <div class="container row justify-content-between align-items-center">
-      <h2 class="col"><a href="/dashboard"><i class="bi bi-arrow-left"></i></a> Archive: <%= archive %></h2>
+      <h2 class="col"><a href="<%= root %>/dashboard"><i class="bi bi-arrow-left"></i></a> Archive: <%= archive %></h2>
       <span class="text-secondary col-1"><%= user_version %></span>
     </div>
 
     <!-- Upload File Form -->
     <div class="card my-4 p-3">
       <h4>Upload File</h4>
-      <form action="/upload?archive=<%= archive %>" method="POST" enctype="multipart/form-data">
+      <form action="<%= root %>/upload?archive=<%= archive %>" method="POST" enctype="multipart/form-data">
         <div class="mb-3">
           <input type="file" name="file" class="form-control" required multiple>
         </div>
@@ -45,7 +45,7 @@
     <!-- Actions to apply to all entries -->
     <div class="card my-4 p-3">
       <h4>Apply to all entries</h4>
-      <form action="/update/<%= archive %>" method="POST">
+      <form action="<%= root %>/update/<%= archive %>" method="POST">
         <div class="mb-3">
           <div class="container">
             <div class="row align-items-center">
@@ -97,7 +97,7 @@
           <% files.forEach(file=> { %>
           <tr>
             <th scope="row"><%= file.id %></th>
-            <td><a href="/file/<%= archive %>/<%= file.filename %>" target="_blank"> <%= file.filename %> </a></td>
+            <td><a href="<%= root %>/file/<%= archive %>/<%= file.filename %>" target="_blank"> <%= file.filename %> </a></td>
             <td><%= file.description %></td>
             <td><%= file.tags %></td>
             <% if (file.license) { %>
@@ -134,7 +134,7 @@
             <p>Since this will delete files and folders on the server, <b><em>this action cannot be un-done</em></b>!</p>
           </div>
           <div class="modal-footer">
-            <form action="/delete" method="post">
+            <form action="<%= root %>/delete" method="post">
               <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
               <button type="submit" class="btn btn-danger">DELETE</button>
               <input type="hidden" name="archive" value="<%= archive %>">
@@ -155,7 +155,7 @@
           <h1 class="modal-title fs-5" id="editModalLabel">Edit source</h1>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <form action="/update/<%= archive %>" method="POST">
+        <form action="<%= root %>/update/<%= archive %>" method="POST">
           <div class="modal-body mb-3">
             <input name="description" class="form-control mb-2" type="text" placeholder="Description" data-toggle="tooltip" data-placement="bottom" title="Short description of audio file.">
             <input name="tags" class="form-control mb-2" type="text" placeholder="Tags" data-toggle="tooltip" data-placement="bottom" title="List of tags separated by the '|' symbol. E.g. 'car|machine|engine'">
@@ -216,7 +216,7 @@
     });
   </script>
 
-  <script src="/js/undo.js"></script>
+  <!-- <script src="js/undo.js"></script> -->
 
 </body>
 
