@@ -1,6 +1,6 @@
 # WAIVE Sampler Database Manager
 
-Basic database manager to update and edit the remote database that serves the plugin [WAIVE-Sampler](https://github.com/ThunderboomRecords/WAIVE).
+A basic database frontend to update and edit the remote database that serves the music plugin [WAIVE-Sampler](https://github.com/ThunderboomRecords/WAIVE).
 
 Built on [node.js](https://nodejs.org/), [express.js](https://expressjs.com/), [SQLite](https://www.sqlite.org/), and [Bootstrap](https://getbootstrap.com/).
 
@@ -25,13 +25,15 @@ BACKUPS_DIR='backups/'
 DATABASE_FILE='data.db'
 ```
 The example above indicates the default values.
+This file is ignored by version control.
 
-Make sure `PORT` is a valid and usable port to serve requests.
+Make sure `PORT` is a valid and usable port to serve requests. 
+
 `ROOT` is the root path of the URL. 
 For example, if this server should have a domain name `www.example.com/some/path` then `ROOT='/some/path'`.
 `ROOT` must begin with `/` and does not need to end with it.
 
-There is only one user account whos credentials can only be set by `USERNAME` and `PASSWORD`.
+There is only one user account whos credentials are set by `USERNAME` and `PASSWORD` fields.
 Set a stronger password than the default!
 
 If `UPLOADS_DIR`, `BACKUPS_DIR` or `DATABASE_FILE` begins with a `/` it is treated as an absolute path, otherwise it is relative from this repo.
