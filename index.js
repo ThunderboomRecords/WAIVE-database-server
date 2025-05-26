@@ -1,7 +1,7 @@
 import express from 'express';
 import session from 'express-session';
 import multer from 'multer';
-import path from 'path';
+import path, { join } from 'path';
 import fs from 'fs';
 import { stringify } from 'csv-stringify';
 import { fileURLToPath } from 'url';
@@ -188,6 +188,69 @@ app.get('/api/archives', async (req, res) => {
     const archives = await db.all("SELECT * FROM Archives;", []);
 
     return res.json(archives);
+});
+
+app.get('/api/search', async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = Math.min(parseInt(req.query.limit) || 20, 100);
+    const offset = (page - 1) * limit;
+
+
+    let countQuery = 'SELECT COUNT(DISTINCT Sources.id) AS count FROM Sources ';
+    let dataQuery = 'SELECT DISTINCT Sources.id, Sources.description, Sources.tags, Sources.filename, Sources.archive, Sources.license FROM Sources ';
+
+    let whereCondition = 'WHERE (hidden != 1 OR hidden IS NULL) ';
+    let params = [];
+    const tags = [].concat(req.query.tag || []);
+    const archives = [].concat(req.query.archive || []);
+    const search = req.query.q || '';
+
+    if (tags.length) {
+        console.log(tags);
+
+        const joinClause = 'JOIN SourcesTags ON Sources.id = SourcesTags.sourceId JOIN Tags ON Tags.id = SourcesTags.tagId ';
+        countQuery += joinClause;
+        dataQuery += joinClause;
+
+        const placeholders = tags.map(() => '?').join(', ');
+        whereCondition += `AND Tags.tag IN (${placeholders}) `;
+        params.push(...tags);
+    }
+
+    if (archives.length > 0) {
+        const placeholders = archives.map(() => '?').join(', ');
+        whereCondition += `AND archive IN (${placeholders}) `
+        params.push(...archives);
+    }
+
+    if (search) {
+        const searchTerm = `%${search}%`;
+        whereCondition += 'AND (description LIKE ? OR filename LIKE ?) ';
+        params.push(searchTerm);
+        params.push(searchTerm);
+    }
+
+    countQuery += whereCondition;
+    dataQuery += whereCondition + 'LIMIT ? OFFSET ?';
+
+    const db = await dbPromise;
+
+    console.log(countQuery);
+    const countResult = await db.get(countQuery, params);
+    const total = countResult.count;
+    const totalPages = Math.ceil(total / limit);
+
+    console.log(dataQuery);
+    params.push(limit, offset);
+    const results = await db.all(dataQuery, params);
+
+    return res.json({
+        page,
+        limit,
+        total,
+        totalPages,
+        data: results
+    });
 });
 
 
