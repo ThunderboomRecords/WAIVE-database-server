@@ -51,7 +51,11 @@ let dbPromise = open({
 });
 
 const PORT = process.env.PORT || 3000;
-const ROOT = process.env.ROOT || '/';
+let ROOT = process.env.ROOT || '';
+if (ROOT.at(-1) === '/')
+    ROOT = ROOT.slice(0, -1);
+
+console.log(`ROOT: ${ROOT}`);
 
 // Middleware setup
 app.set('view engine', 'ejs');
@@ -294,7 +298,7 @@ app.post('/update/*', isAuthenticated, async (req, res) => {
     params.push(archive);
 
     if (id !== undefined) {
-        queryString += "AND id = ?";
+        queryString += " AND id = ?";
         params.push(id);
     }
 
@@ -304,6 +308,31 @@ app.post('/update/*', isAuthenticated, async (req, res) => {
         const db = await dbPromise;
         await createSavePoint(db)
         await db.run(queryString, params, (err) => console.log(err.message));
+
+        if (tags) {
+            let ids;
+            if (id !== undefined)
+                ids = [{ id }];
+            else
+                ids = await db.all('SELECT id FROM Sources WHERE archive = ?', [archive]);
+
+            console.log("affected IDs: " + ids.length);
+
+            for (const tag of tags.split('|')) {
+                console.log(tag);
+                const tagRow = await db.get('SELECT * FROM Tags WHERE tag = ?', [tag]);
+                if (!tagRow) {
+                    console.log(`${tag} not found in Tags, skipping`);
+                    continue;
+                }
+
+                for (const sourceId of ids) {
+                    await db.run('INSERT OR REPLACE INTO SourcesTags VALUES (?, ?)', [sourceId.id, tagRow.id]);
+                }
+
+            }
+        }
+
         await updateVersion(db);
     }
 
