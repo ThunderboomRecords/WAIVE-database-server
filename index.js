@@ -175,6 +175,10 @@ app.get('/undo', isAuthenticated, async (req, res) => {
     res.redirect('back');
 });
 
+app.get('/search', (req, res) => {
+    return res.render('search', { root: ROOT });
+})
+
 // Public REST API Endpoints
 app.get('/api/tags', async (req, res) => {
     const db = await dbPromise;
