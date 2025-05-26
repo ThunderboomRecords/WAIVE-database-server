@@ -171,9 +171,26 @@ app.get('/undo', isAuthenticated, async (req, res) => {
     res.redirect('back');
 });
 
+// Public REST API Endpoints
+app.get('/api/tags', async (req, res) => {
+    const db = await dbPromise;
+    const tags = await db.all("SELECT * FROM Tags;", []);
+
+    return res.json(tags);
+});
+
+app.get('/api/archives', async (req, res) => {
+    const db = await dbPromise;
+    const archives = await db.all("SELECT * FROM Archives;", []);
+
+    return res.json(archives);
+});
+
+
 // POST Routes
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
+    console.log(`${username}, ${password}`);
     if (username === USER.username && password === USER.password) {
         req.session.user = USER;
         res.redirect(path.join(ROOT, '/dashboard'));
