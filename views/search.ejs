@@ -160,12 +160,9 @@
       });
     }
 
-    function renderPagination(current, totalPages) {
-      paginationContainer.innerHTML = '';
-      if (totalPages <= 1) return;
-
-      for (let i = 1; i <= totalPages; i++) {
-        const li = document.createElement('li');
+    function createPaginationElement(i, current) {
+      const li = document.createElement('li');
+      if (i >= 0) {
         li.className = `page-item ${i === current ? 'active' : ''}`;
         li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
         li.addEventListener('click', e => {
@@ -173,7 +170,54 @@
           currentPage = i;
           fetchItems(i);
         });
-        paginationContainer.appendChild(li);
+      } else {
+        li.className = `page-item disabled`;
+        li.innerHTML = '<span class="page-link">...</span>';
+      }
+      return li;
+    }
+
+    function renderPagination(current, totalPages) {
+      paginationContainer.innerHTML = '';
+      if (totalPages <= 1) return;
+
+      if (totalPages <= 10) {
+        for (let i = 1; i <= totalPages; i++) {
+          const li = createPaginationElement(i, current);
+          paginationContainer.appendChild(li);
+        }
+      } else {
+        let pageList = new Set([1, 2, 3]);
+
+        pageList.add(totalPages - 2);
+        pageList.add(totalPages - 1);
+        pageList.add(totalPages);
+
+        pageList.add(Math.max(1, current - 2));
+        pageList.add(Math.max(1, current - 1));
+        pageList.add(current);
+        pageList.add(Math.min(totalPages, current + 1));
+        pageList.add(Math.min(totalPages, current + 2));
+
+        let pages = Array.from(pageList);
+        pages.sort((a, b) => a - b);
+
+        let lastPage = 0;
+        for (let i = 0; i < pages.length; i++) {
+          if (pages[i] > lastPage + 1) {
+            // add spacer if skipping
+            const li = createPaginationElement(-1, current);
+            paginationContainer.appendChild(li);
+          }
+
+          const li = createPaginationElement(pages[i], current);
+          paginationContainer.appendChild(li);
+
+          lastPage = pages[i];
+        }
+
+
+
       }
     }
 

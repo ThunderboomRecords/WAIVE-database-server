@@ -140,6 +140,7 @@ app.get('/dashboard/*', isAuthenticated, async (req, res) => {
     const currentPath = path.join(UPLOADS_DIR, archive);
 
     if (!fs.existsSync(currentPath)) {
+        console.log(`currentPath (${currentPath}) does not exist. Returning.`);
         return res.redirect(path.join(ROOT, '/dashboard'));
     }
 
