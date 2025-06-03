@@ -31,19 +31,24 @@ let UPLOADS_DIR = process.env.UPLOADS_DIR || 'uploads';
 if (UPLOADS_DIR[0] !== '/') {
     UPLOADS_DIR = path.join(__dirname, UPLOADS_DIR);
 }
-console.log("UPLOADS_DIR: " + UPLOADS_DIR);
+console.log(`UPLOADS_DIR: ${UPLOADS_DIR}`);
 
 let BACKUPS_DIR = process.env.BACKUPS_DIR || 'backups';
 if (BACKUPS_DIR[0] !== '/') {
     BACKUPS_DIR = path.join(__dirname, BACKUPS_DIR);
 }
-console.log("BACKUPS_DIR: " + BACKUPS_DIR);
+console.log(`BACKUPS_DIR: ${BACKUPS_DIR}`);
 
 let DATABASE_FILE = process.env.DATABASE_FILE || 'data.db';
 if (DATABASE_FILE[0] !== '/') {
     DATABASE_FILE = path.join(__dirname, DATABASE_FILE);
 }
-console.log("DATABASE_FILE: " + DATABASE_FILE);
+console.log(`DATABASE_FILE: ${DATABASE_FILE}`);
+
+let SEARCH_FILES_URL_BASE = process.env.SEARCH_FILES_URL_BASE;
+if (SEARCH_FILES_URL_BASE && SEARCH_FILES_URL_BASE.at(-1) !== '/')
+    SEARCH_FILES_URL_BASE += '/'
+console.log(`SEARCH_FILES_URL_BASE: ${SEARCH_FILES_URL_BASE}`);
 
 let dbPromise = open({
     filename: DATABASE_FILE,
@@ -51,6 +56,8 @@ let dbPromise = open({
 });
 
 const PORT = process.env.PORT || 3000;
+console.log(`PORT: ${PORT}`);
+
 let ROOT = process.env.ROOT || '';
 if (ROOT.at(-1) === '/')
     ROOT = ROOT.slice(0, -1);
@@ -177,7 +184,7 @@ app.get('/undo', isAuthenticated, async (req, res) => {
 });
 
 app.get('/search', (req, res) => {
-    return res.render('search', { root: ROOT });
+    return res.render('search', { root: ROOT, url_base: SEARCH_FILES_URL_BASE });
 })
 
 // Public REST API Endpoints
@@ -262,7 +269,6 @@ app.get('/api/search', async (req, res) => {
 // POST Routes
 app.post('/login', (req, res) => {
     const { username, password } = req.body;
-    console.log(`${username}, ${password}`);
     if (username === USER.username && password === USER.password) {
         req.session.user = USER;
         res.redirect(path.join(ROOT, '/dashboard'));
