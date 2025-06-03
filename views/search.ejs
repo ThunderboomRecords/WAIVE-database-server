@@ -150,11 +150,15 @@
       }
 
       items.forEach(item => {
+        let tags = item.tags;
+        tags = tags.split('|').join(', ');
         const div = document.createElement('div');
         div.className = 'col-12 item-card card p-3 shadow-sm';
         div.innerHTML = `
           <h5><a target="_blank" href="<%= url_base %>file/${item.archive}/${item.filename}"">${item.filename}</a></h5>
           <p>${item.description || ''}</p>
+          <p>Archive: <em>${item.archive}</em></p>
+          <p>Tags: <em>${tags}</em></p>
         `;
         resultsContainer.appendChild(div);
       });
