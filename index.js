@@ -105,9 +105,6 @@ function isAuthenticated(req, res, next) {
 }
 
 // GET Routes
-app.get('/', (req, res) => {
-    res.redirect(path.join(ROOT, '/dashboard'));
-});
 
 app.get('/login', (req, res) => {
     res.render('login', { root: ROOT });
@@ -186,6 +183,10 @@ app.get('/undo', isAuthenticated, async (req, res) => {
 app.get('/search', (req, res) => {
     return res.render('search', { root: ROOT, url_base: SEARCH_FILES_URL_BASE });
 })
+
+app.get('/', (req, res) => {
+    return res.render('home', { root: ROOT, url_base: SEARCH_FILES_URL_BASE });
+});
 
 // Public REST API Endpoints
 app.get('/api/tags', async (req, res) => {
