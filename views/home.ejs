@@ -10,7 +10,8 @@
   <!-- <link rel="icon" href="<%= root %>/favicon.ico" type="image/x-icon"> -->
 </head>
 
-<body>
+<body style="background-image: url('<%= root %>/media/background.png')">
+  <a href="https://www.thunderboomrecords.com/contact" id="contact">contact</a>
   <div id="about-card" class="card">
     <div class="card-title">About</div>
     <div id="about-content" class="card-content">
@@ -37,23 +38,33 @@
     <div id="download-content" class="card-content">
       <img id="download-expand" src="<%= root %>/media/WAIVE_Sampler.png" alt="WAIVE-Sampler screenshot">
       <div id="download-expanded-content">
-        <div class="download-item">
-          <img src="<%= root %>/media/WAIVE_Sampler.png" alt="WAIVE-Sampler screenshot">
-          <h2>Sampler</h2>
-          <p>Our tools transform audio and video into ready-to-use samples, drum patterns and live VJ content</p>
-          <p><a href="">Download</a></p>
+        <img src="<%= root %>/media/WAIVE_Sampler.png" alt="WAIVE-Sampler screenshot">
+        <img src="<%= root %>/media/WAIVE_Sequencer.png" alt="WAIVE-Sequencer screenshot">
+        <br>
+        <img src="<%= root %>/media/WAIVE_Front.png" alt="WAIVE-Front screenshot">
+        <h2>Sampler</h2>
+        <h2>Sequencer</h2>
+        <span class="spacer"></span>
+        <h2>Front</h2>
+        <p>Our tools transform audio and video into ready-to-use samples, drum patterns and live VJ content</p>
+        <p>Our tools transform audio and video into ready-to-use samples, drum patterns and live VJ content</p>
+        <br>
+        <p>Our tools transform audio and video into ready-to-use samples, drum patterns and live VJ content</p>
+        <div id="waive-download">
+          <div>
+            <h3>Download</h3>
+            <p>macOS installer: <a href="https://github.com/ThunderboomRecords/WAIVE/releases/download/v1.5.6/WAIVE_Plugins_macOS_arm64_v1.5.6.dmg">arm64</a>, <a href="https://github.com/ThunderboomRecords/WAIVE/releases/download/v1.5.6/WAIVE_Plugins_macOS_x86_v1.5.6.dmg">x86</a><br>
+              Windows installer: <a href="https://github.com/ThunderboomRecords/WAIVE/releases/download/v1.5.6/WAIVE-Plugins_windows_x64_v1.5.6.exe">64bit</a>
+            </p>
+          </div>
         </div>
-        <div class="download-item">
-          <img src="<%= root %>/media/WAIVE_Sequencer.png" alt="WAIVE-Sequencer screenshot">
-          <h2>Sequencer</h2>
-          <p>Our tools transform audio and video into ready-to-use samples, drum patterns and live VJ content</p>
-          <p><a href="">Download</a></p>
-        </div>
-        <div class="download-item">
-          <img src="<%= root %>/media/WAIVE_Sampler.png" alt="WAIVE-Sampler screenshot">
-          <h2>Visualizer</h2>
-          <p>Our tools transform audio and video into ready-to-use samples, drum patterns and live VJ content</p>
-          <p><a href="">Download</a></p>
+        <br>
+
+        <div>
+          <h3>Download</h3>
+          <p>macOS: <a href="https://github.com/superpositioncc/waive-front-v2/releases/download/v2.1/WAIVE-FRONT-V2.MacOS.AU.zip">AU</a>, <a href="https://github.com/superpositioncc/waive-front-v2/releases/download/v2.1/WAIVE-FRONT-V2.MacOS.VST3.zip">VS3</a><br>
+            Windows: <a href="https://github.com/superpositioncc/waive-front-v2/releases/download/v2.1/WAIVE-FRONT-V2.Windows.VST.zip">VST</a>, <a href="https://github.com/superpositioncc/waive-front-v2/releases/download/v2.1/WAIVE-FRONT-V2.Windows.VST3.zip">VST3</a>
+          </p>
         </div>
         <span id="close-downloads" class="close">close</span>
       </div>
@@ -64,13 +75,42 @@
     <div class="card-title">Database</div>
     <div id="database-content" class="card-content">
       <p>Explore the database used by WAIVE</p>
-      <p id="about-readmore" class="expand">Browse...</p>
+      <p id="database-browse" class="expand">Browse...</p>
       <div id="database-expanded-content">
-        <h3>Archives</h3>
-        <ul>
-          <li>BBC</li>
-          <li>Beeld&Geluid</li>
-        </ul>
+        <form id="search-form">
+          <div id="search-filter">
+            <!-- <div> -->
+            <label for="search" class="form-label">Search text:</label>
+            <input type="text" id="search" name="search" class="form-control">
+            <!-- </div> -->
+            <label class="form-label">Archives:</label>
+            <div id="archive-checkboxes">
+              <!-- Checkboxes inserted by JS -->
+            </div>
+            <!-- <div id="tags-container"> -->
+            <label class="form-label">Tags:</label>
+            <div id="tag-checkboxes">
+              <!-- Checkboxes inserted by JS -->
+            </div>
+            <!-- </div> -->
+            <button type="submit" id="search-btn">Search</button>
+          </div>
+          <div id="results-container">
+            <div>
+              <span>Results:</span>
+              <p>Number of files: <span id="results-count">0</span></p>
+            </div>
+            <div id="results" class="row">
+              <!-- Results inserted here -->
+            </div>
+            <nav>
+              <ul id="pagination">
+                <!-- Pagination inserted by JS -->
+              </ul>
+            </nav>
+          </div>
+
+        </form>
       </div>
     </div>
   </div>
@@ -101,6 +141,11 @@
     </div>
   </div>
 
+  <script>
+    const ROOT_URL = '<%= root %>';
+  </script>
+
+  <script src="search.js"></script>
   <script src="index.js"></script>
 </body>
 

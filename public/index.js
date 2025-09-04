@@ -2,6 +2,9 @@ let zIndex = 10;
 
 document.addEventListener('DOMContentLoaded', () => {
 
+    loadFormLists();
+    fetchItems();
+
     document.querySelectorAll('.card').forEach(card => {
         makeDraggableCard(card);
         makeCollapsibleText(card);
@@ -11,6 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         card.addEventListener('wheel', (ev) => {
+            // Check if the element under cursor is scrollable:
+            let target = ev.target;
+            while (target && target.localName != 'body') {
+                if (isScrollable(target)) return;
+                target = target.parentElement;
+            }
+
             // check if card is out of bounds
             if (card.offsetTop >= 20 && card.offsetTop + card.offsetHeight < window.innerHeight - 20)
                 return;
@@ -34,7 +44,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const downloadClose = document.querySelector("#close-downloads");
     downloadExpand.onclick = () => {
         downloadExpand.style.display = 'none';
-        downloadExpandedContent.style.display = 'flex';
+        downloadExpandedContent.style.display = 'grid';
         downloadClose.style.display = 'block';
     }
 
@@ -61,6 +71,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (eventsCard.offsetTop < 20)
             eventsCard.style.top = "20px";
     }
+
+    // Database Search
+    const form = document.querySelector("#search-form");
+    const databaseCardContent = document.querySelector("#database-content");
+    const databaseExpand = document.querySelector("#database-browse");
+
+    databaseExpand.addEventListener('click', () => {
+        if (databaseExpand.classList.contains('expand')) {
+            databaseCardContent.style.width = '20em';
+        } else {
+            databaseCardContent.style.width = 'fit-content';
+        }
+    });
+
+    form.addEventListener('submit', e => {
+        e.preventDefault();
+        currentPage = 1;
+        fetchItems();
+    });
 
 
     // Positioning
@@ -140,7 +169,7 @@ function makeCollapsibleText(el) {
     // Move expand element to end
     expand.parentElement.appendChild(expand);
 
-    expand.onclick = () => {
+    expand.addEventListener('click', () => {
         if (expand.classList.contains('expand')) {
             // expand text
             expand.classList.remove('expand');
@@ -163,5 +192,61 @@ function makeCollapsibleText(el) {
             if (el.offsetTop < 20)
                 el.style.top = "20px";
         }
-    }
+    });
 }
+
+function loadFormLists() {
+    let archives = [];
+    let archiveContainer = document.querySelector("#archive-checkboxes");
+    fetch(`${ROOT_URL}/api/archives`)
+        .then(res => res.json())
+        .then(data => {
+            archives = data.map(a => a.name);
+            archives.forEach(archive => {
+                const div = document.createElement('div');
+                div.className = 'form-check';
+                div.innerHTML = `
+        <input class="form-check-input" type="checkbox" value="${archive}" id="archive-${archive}">
+        <label class="form-check-label" for="archive-${archive}">${archive}</label>
+      `;
+                archiveContainer.appendChild(div);
+            });
+        }).catch(reason => {
+            console.warn(`Could not fetch archive list:`);
+            console.log(reason);
+        });
+
+    let tags = [];
+    let tagContainer = document.querySelector("#tag-checkboxes");
+    fetch(`${ROOT_URL}/api/tags`)
+        .then(res => res.json())
+        .then(data => {
+            tags = data.map(t => t.tag);
+            tags.sort();
+            tags.forEach(tag => {
+                const div = document.createElement('div');
+                div.className = 'form-check';
+                div.innerHTML = `
+        <input class="form-check-input" type="checkbox" value="${tag}" id="tag-${tag}">
+        <label class="form-check-label" for="tag-${tag}">${tag}</label>
+      `;
+                tagContainer.appendChild(div);
+            });
+        }).catch(reason => {
+            console.warn(`Could not fetch tag list:`);
+            console.log(reason);
+        });
+}
+
+function isScrollable(el) {
+    const hasScrollableContent = el.scrollHeight > el.clientHeight;
+
+    // It's not enough because the element's `overflow-y` style can be set as
+    // * `hidden`
+    // * `hidden !important`
+    // In those cases, the scrollbar isn't shown
+    const overflowYStyle = window.getComputedStyle(el).overflowY;
+    const isOverflowHidden = overflowYStyle.indexOf('hidden') !== -1;
+
+    return hasScrollableContent && !isOverflowHidden;
+};
