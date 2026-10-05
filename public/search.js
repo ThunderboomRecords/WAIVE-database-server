@@ -38,7 +38,7 @@ function renderResults(items) {
         const div = document.createElement('div');
         div.className = 'item-card';
         div.innerHTML = `
-          <h5>Filename: <a target="_blank" href="<%= url_base %>file/${item.archive}/${item.filename}"">${item.filename}</a></h5>
+          <h5>Filename: <a target="_blank" href="${BASE_URL}file/${item.archive}/${item.filename}"">${item.filename}</a></h5>
           <p>${item.description || ''}</p>
           <p>Archive: <em>${item.archive}</em>, Tags: <em>${tags}</em></p>
         `;
