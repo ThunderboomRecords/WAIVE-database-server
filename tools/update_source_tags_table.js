@@ -1,10 +1,8 @@
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import { config } from 'dotenv';
 
-import { parse } from 'csv-parse';
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 
@@ -22,35 +20,42 @@ if (DATABASE_FILE[0] !== '/') {
 }
 
 console.log(DATABASE_FILE);
-let dbPromise = open({
+const db = await open({
     filename: DATABASE_FILE,
     driver: sqlite3.Database
 });
-const db = await dbPromise;
-const sources = await db.all('SELECT * FROM Sources');
 
-let tagCache = {};
+const sources = await db.all('SELECT id, tags FROM Sources');
+const tagIds = new Map(
+    (await db.all('SELECT id, tag FROM Tags')).map(t => [t.tag, t.id])
+);
+const missing = new Set();
 
-for (const source of sources) {
-    for (const tag of source.tags.split('|')) {
-
-        let tagId = tagCache[tag];
-        if (tagId === undefined) {
-            const tagRow = await db.get('SELECT * FROM Tags WHERE tag = ?', [tag]);
-            if (!tagRow) {
-                console.log(`${tag} not found in Tags, skipping`);
-                tagCache[tag] = -1;
+await db.exec('BEGIN');
+try {
+    await db.run('DELETE FROM SourcesTags');
+    const insert = await db.prepare('INSERT OR REPLACE INTO SourcesTags VALUES (?, ?)');
+    for (const source of sources) {
+        for (const tag of source.tags.split('|')) {
+            const tagId = tagIds.get(tag);
+            if (tagId === undefined) {
+                if (!missing.has(tag)) {
+                    console.log(`${tag} not found in Tags for source ID ${source.id}, skipping`);
+                    missing.add(tag);
+                }
                 continue;
             }
-            tagCache[tag] = tagRow.id;
-            tagId = tagRow.id;
+            await insert.run(source.id, tagId);
         }
-        else if (tagId == -1)
-            continue;
-
-        await db.run('INSERT OR REPLACE INTO SourcesTags VALUES (?, ?)', [source.id, tagId]);
     }
+    await insert.finalize();
+    await db.exec('COMMIT');
+} catch (err) {
+    await db.exec('ROLLBACK');
+    throw err;
 }
+
+console.log(`\nNumber of missing tags: ${missing.size}`);
 
 await db.close();
 console.log("Finished");

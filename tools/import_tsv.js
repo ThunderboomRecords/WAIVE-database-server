@@ -22,29 +22,44 @@ if (DATABASE_FILE[0] !== '/') {
 }
 
 console.log(DATABASE_FILE);
-let dbPromise = open({
+const db = await open({
     filename: DATABASE_FILE,
     driver: sqlite3.Database
 });
-const db = await dbPromise;
+// Wait up to 10 s for other connections (e.g. the web server) to release locks
+await db.run('PRAGMA busy_timeout = 10000');
+// Let readers (e.g. the web server) keep reading while this script writes
+await db.run('PRAGMA journal_mode = WAL');
 
-fs.createReadStream("filelist.tsv")
-    .pipe(parse({ delimiter: "\t", from_line: 2 }))
-    .on("data", function (data) {
-        // console.log(data);
-        db.run('INSERT OR REPLACE INTO Sources(id, archive, description, tags, filename, license) VALUES (?, ?, ?, ?, ?, ?)', [
-            data[0], data[5], data[1],  data[2], data[4], data[7]
-        ]);
+let count = 0;
 
-        db.run('INSERT OR IGNORE INTO Archives(name) VALUES (?)', [data[5]]);
-        // db.run('INSERT OR REPLACE INTO Tags(id, tag, embedX, embedY, counts) VALUES (?, ?, ?, ?, ?)', [
-        //     data[0], data[1], data[2], data[3], data[4]
-        // ]);
-    })
-    .on("end", async function () {
-        await db.close();
-        console.log("finished");
-    })
-    .on("error", function (error) {
-        console.log(error.message);
-    });
+await db.exec('BEGIN IMMEDIATE');
+try {
+    await db.run('DELETE FROM Sources');
+    await db.run('DELETE FROM Archives');
+    console.log('Cleared Sources and Archives');
+
+    const insert_source = await db.prepare('INSERT OR REPLACE INTO Sources(id, archive, description, tags, filename, license) VALUES (?, ?, ?, ?, ?, ?)');
+    const insert_archive = await db.prepare('INSERT OR IGNORE INTO Archives(name) VALUES (?)');
+
+    const parser = fs.createReadStream("./public/all_samples_data.tsv")
+        .pipe(parse({ delimiter: "\t", from_line: 2 }));
+
+    for await (const data of parser) {
+        await insert_source.run(data[0], data[5], data[1], data[2], data[4], data[7]);
+        await insert_archive.run(data[5]);
+        count++;
+        process.stdout.write(`\rCount: ${count}`);
+    }
+
+    await insert_source.finalize();
+    await insert_archive.finalize();
+    await db.exec('COMMIT');
+} catch (err) {
+    await db.exec('ROLLBACK');
+    console.log();
+    throw err;
+}
+
+await db.close();
+console.log("\nfinished");
