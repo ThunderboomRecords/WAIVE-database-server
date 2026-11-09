@@ -137,8 +137,8 @@ app.get('/dashboard', isAuthenticated, async (_req, res) => {
     res.render('dashboard', { archives, user_version, undoSavePoints, root: ROOT });
 });
 
-app.get('/dashboard/*', isAuthenticated, async (req, res) => {
-    const archive = req.params[0];
+app.get('/dashboard/*archive', isAuthenticated, async (req, res) => {
+    const archive = req.params.archive[0];
     const currentPath = path.join(UPLOADS_DIR, archive);
 
     if (!fs.existsSync(currentPath)) {
@@ -289,7 +289,6 @@ app.post('/upload', isAuthenticated, upload.array('file'), async (req, res) => {
         // generate id
         const serverID = 1;
         const timestamp = Date.now() % 100000;
-        // const rand = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
         const id = parseInt(`${serverID}${timestamp}${count.toString().padStart(3, '0')}`);
 
         await db.run("INSERT INTO Sources(id, archive, filename) VALUES (?, ?, ?)", [id, archive, file.originalname]);
@@ -321,8 +320,8 @@ app.post('/add-archive', isAuthenticated, async (req, res) => {
     res.redirect(path.join(ROOT, '/dashboard', archiveName));
 });
 
-app.post('/update/*', isAuthenticated, async (req, res) => {
-    const archive = req.params[0];
+app.post('/update/*archive', isAuthenticated, async (req, res) => {
+    const archive = req.params.archive[0];
     const folderPath = path.join(UPLOADS_DIR, archive);
 
     console.log("/update for archive " + archive);
