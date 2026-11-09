@@ -1,7 +1,7 @@
 import express from 'express';
 import session from 'express-session';
+import path from 'path';
 import multer from 'multer';
-import path, { join } from 'path';
 import fs from 'fs';
 import { stringify } from 'csv-stringify';
 import { fileURLToPath } from 'url';
@@ -15,15 +15,12 @@ import { open } from 'sqlite';
 let user_version;
 let undoSavePoints = [];
 
-import { config } from 'dotenv';
+import dotenv from 'dotenv';
+dotenv.config();
 
 console.log("args:")
 console.log(process.argv);
 
-const CONFIG_FILE = process.argv[2] || '.env';
-console.log("Loading config file: " + CONFIG_FILE);
-
-config({ path: CONFIG_FILE });
 
 const app = express();
 
@@ -33,17 +30,18 @@ if (UPLOADS_DIR[0] !== '/') {
 }
 console.log(`UPLOADS_DIR: ${UPLOADS_DIR}`);
 
-let BACKUPS_DIR = process.env.BACKUPS_DIR || 'backups';
-if (BACKUPS_DIR[0] !== '/') {
-    BACKUPS_DIR = path.join(__dirname, BACKUPS_DIR);
-}
-console.log(`BACKUPS_DIR: ${BACKUPS_DIR}`);
-
-let DATABASE_FILE = process.env.DATABASE_FILE || 'data.db';
+const DATABASE_DIR = process.env.DATABASE_DIR || path.join(__dirname, 'db/');
+let DATABASE_FILE = path.join(DATABASE_DIR, "data.db");
 if (DATABASE_FILE[0] !== '/') {
     DATABASE_FILE = path.join(__dirname, DATABASE_FILE);
 }
 console.log(`DATABASE_FILE: ${DATABASE_FILE}`);
+
+let BACKUPS_DIR = process.env.BACKUPS_DIR || path.join(DATABASE_DIR, 'backups/');
+if (BACKUPS_DIR[0] !== '/') {
+    BACKUPS_DIR = path.join(__dirname, BACKUPS_DIR);
+}
+console.log(`BACKUPS_DIR: ${BACKUPS_DIR}`);
 
 let SEARCH_FILES_URL_BASE = process.env.SEARCH_FILES_URL_BASE;
 if (SEARCH_FILES_URL_BASE && SEARCH_FILES_URL_BASE.at(-1) !== '/')
@@ -80,12 +78,12 @@ app.use(session({
 
 // Multer setup for file uploads
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
+    destination: (req, _file, cb) => {
         const currentPath = path.join(UPLOADS_DIR, req.query.archive);
         if (!fs.existsSync(currentPath)) fs.mkdirSync(currentPath, { recursive: true });
         cb(null, currentPath);
     },
-    filename: (req, file, cb) => {
+    filename: (_req, file, cb) => {
         cb(null, file.originalname);
     }
 });
@@ -106,22 +104,22 @@ function isAuthenticated(req, res, next) {
 
 // GET Routes
 
-app.get('/login', (req, res) => {
+app.get('/login', (_req, res) => {
     res.render('login', { root: ROOT });
 });
 
-app.get('/latest', (req, res) => {
+app.get('/latest', (_req, res) => {
     console.log("/latest");
     res.json({ version: user_version });
 });
 
-app.get('/filelist', async (req, res) => {
+app.get('/filelist', async (_req, res) => {
     console.log("/filelist");
 
     res.sendFile(path.join(__dirname, 'public', 'all_samples_data.tsv'));
 });
 
-app.get('/tags', (req, res) => {
+app.get('/tags', (_req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'tags.tsv'));
 });
 
@@ -130,9 +128,9 @@ app.get('/logout', (req, res) => {
     res.redirect(path.join(ROOT, '/login'));
 });
 
-app.get('/dashboard', isAuthenticated, async (req, res) => {
+app.get('/dashboard', isAuthenticated, async (_req, res) => {
     const db = await dbPromise;
-    const archives = await db.all("SELECT * FROM Archives;", [], (err, rows) => {
+    const archives = await db.all("SELECT * FROM Archives;", [], (_err, rows) => {
         return rows;
     });
 
@@ -180,23 +178,23 @@ app.get('/undo', isAuthenticated, async (req, res) => {
     res.redirect('back');
 });
 
-app.get('/search', (req, res) => {
+app.get('/search', (_req, res) => {
     return res.render('search', { root: ROOT, url_base: SEARCH_FILES_URL_BASE });
 })
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
     return res.render('home', { root: ROOT, url_base: SEARCH_FILES_URL_BASE });
 });
 
 // Public REST API Endpoints
-app.get('/api/tags', async (req, res) => {
+app.get('/api/tags', async (_req, res) => {
     const db = await dbPromise;
     const tags = await db.all("SELECT * FROM Tags;", []);
 
     return res.json(tags);
 });
 
-app.get('/api/archives', async (req, res) => {
+app.get('/api/archives', async (_req, res) => {
     const db = await dbPromise;
     const archives = await db.all("SELECT * FROM Archives;", []);
 
@@ -486,6 +484,18 @@ const setup = async () => {
     });
 }
 
+async function shutdown() {
+    const db = await dbPromise();
+    app.close(() => {
+        db.close();
+        process.exit(0);
+    });
+    app.closeAllConnections?.(); // drop idle keep-alive connections
+    setTimeout(() => process.exit(1), 5000).unref(); // failsafe
+}
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
+
 setup();
 
 async function updateVersion(db) {
@@ -530,7 +540,7 @@ async function createCSV() {
     console.log("finished writing CSV");
 }
 
-async function createSavePoint(db) {
+async function createSavePoint(_db) {
     let sp = `sp${undoSavePoints.length}.db`;
 
     fs.copyFileSync(DATABASE_FILE, path.join(BACKUPS_DIR, sp));

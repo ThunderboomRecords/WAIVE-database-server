@@ -1,0 +1,21 @@
+services:
+  app:
+    build: 
+      context: .
+      args:
+        DATABASE_DIR: /data
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 30s
+    env_file: ".env"
+    environment:
+      UPLOADS_DIR: /uploads
+      BACKUPS_DIR: /data/backups
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - db:/data
+      - ${UPLOADS_DIR}:/uploads
+
+volumes:
+  db:

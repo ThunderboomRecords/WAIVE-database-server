@@ -1,0 +1,13 @@
+node_modules/
+uploads/
+db/
+backups/
+
+**/*.db*
+
+*.env
+
+.dockerignore
+Dockerfile
+
+*.tsv

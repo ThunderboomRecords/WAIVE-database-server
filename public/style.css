@@ -64,6 +64,7 @@ h3 {
     left: 50%;
     transform: translate(-50%, -50%);
     width: 80%;
+    user-select: none;
     mix-blend-mode: exclusion;
 }
 
@@ -160,6 +161,10 @@ h3 {
 
 #download-expanded-content>img {
     align-self: center;
+}
+
+#download-description {
+    grid-column: 1 /5;
 }
 
 #waive-download {
